@@ -8,6 +8,7 @@ require('dotenv').config();
 const User = require('./models/User');
 const Room = require('./models/Room');
 const Message = require('./models/Message');
+const authRoutes = require('./routes/auth');
 
 const app = express();
 const server = http.createServer(app);
@@ -17,6 +18,7 @@ const io = new Server(server, {
 
 app.use(cors());
 app.use(express.json());
+app.use('/api/auth', authRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'WhatsApp Clone API is running!' });
