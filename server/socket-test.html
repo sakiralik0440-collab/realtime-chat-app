@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Socket Test</title>
+  <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+</head>
+<body>
+  <h2>Socket.io Test</h2>
+  <button onclick="joinRoom()">Join Room</button>
+  <button onclick="sendMessage()">Send Message</button>
+  <div id="messages"></div>
+
+  <script>
+    const socket = io('http://localhost:5000');
+
+    const roomId = '6a1a7cfcda7e2fecd4344e57';
+    const userId = '6a13efb13f3343d0d01dafe2';
+
+    socket.on('connect', () => {
+      console.log('Connected to socket:', socket.id);
+      socket.emit('user_online', userId);
+    });
+
+    function joinRoom() {
+      socket.emit('join_room', roomId);
+      alert('Joined room!');
+    }
+
+    function sendMessage() {
+      socket.emit('send_message', {
+        roomId: roomId,
+        senderId: userId,
+        content: 'Hello from socket!'
+      });
+    }
+
+    socket.on('receive_message', (message) => {
+      const div = document.createElement('div');
+      div.innerHTML = `<b>${message.sender.username}:</b> ${message.content}`;
+      document.getElementById('messages').appendChild(div);
+    });
+
+    socket.on('online_users', (users) => {
+      console.log('Online users:', users);
+    });
+  </script>
+</body>
+</html>
