@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Register from './pages/Register';
+import Login from './pages/Login';
 
 function App() {
   const { user, loading } = useAuth();
@@ -18,7 +19,7 @@ function App() {
       <Routes>
         <Route path="/" element={user ? <Navigate to="/chat" /> : <Navigate to="/login" />} />
         <Route path="/register" element={!user ? <Register /> : <Navigate to="/chat" />} />
-        <Route path="/login" element={<div>Login Page - Coming Day 9</div>} />
+        <Route path="/login" element={!user ? <Login /> : <Navigate to="/chat" />} />
         <Route path="/chat" element={user ? <div>Chat Page - Coming Day 13</div> : <Navigate to="/login" />} />
       </Routes>
     </Router>
