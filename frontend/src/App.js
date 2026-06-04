@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useAuth } from './context/AuthContext';
 import Register from './pages/Register';
 import Login from './pages/Login';
+import Navbar from './components/Navbar';
 
 function App() {
   const { user, loading } = useAuth();
@@ -20,7 +21,12 @@ function App() {
         <Route path="/" element={user ? <Navigate to="/chat" /> : <Navigate to="/login" />} />
         <Route path="/register" element={!user ? <Register /> : <Navigate to="/chat" />} />
         <Route path="/login" element={!user ? <Login /> : <Navigate to="/chat" />} />
-        <Route path="/chat" element={user ? <div>Chat Page - Coming Day 13</div> : <Navigate to="/login" />} />
+        <Route path="/chat" element={user ? (
+          <div>
+            <Navbar />
+            <div className="p-4 text-gray-500">Chat Page - Coming Day 13</div>
+          </div>
+        ) : <Navigate to="/login" />} />
       </Routes>
     </Router>
   );
