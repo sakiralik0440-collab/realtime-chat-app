@@ -1,31 +1,28 @@
+import { useState } from 'react';
 
+const MessageInput = ({ onSendMessage, onTyping }) => {
+  const [message, setMessage] = useState('');
 
-import React, { useState } from 'react'
+  const handleChange = (e) => {
+    setMessage(e.target.value);
+    onTyping();
+  };
 
-const MessageInput = () => {
-    const [message,setMessage] = useState('');
+  const handleSend = () => {
+    if (!message.trim()) return;
+    onSendMessage(message);
+    setMessage('');
+  };
 
-    const handleChange = (e) =>{
-        setMessage(e.target.value);
-        onTyping(); //fire typing event
-    };
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
-    const handleSend = () =>{
-        if (!message.trim()) return;
-        onSendMessage(message);
-        setMessage('');
-    };
-
-    const handleKeyPress = (e) =>{
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
-    };
   return (
-   <div className="px-4 py-3 bg-white border-t border-gray-100 flex items-center gap-3">
-
-      {/* Text input */}
+    <div className="px-4 py-3 bg-white border-t border-gray-100 flex items-center gap-3">
       <input
         type="text"
         value={message}
@@ -34,8 +31,6 @@ const MessageInput = () => {
         placeholder="Type a message..."
         className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-purple-300 transition"
       />
-
-      {/* Send button */}
       <button
         onClick={handleSend}
         disabled={!message.trim()}
@@ -51,4 +46,4 @@ const MessageInput = () => {
   );
 };
 
-export default MessageInput
+export default MessageInput;

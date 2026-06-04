@@ -1,44 +1,42 @@
-import React, { useState } from 'react'
+import { useState } from 'react';
+import api from '../utils/api';
 
-const Sidebar = () => {
-   const [newRoomName , setNewRoomName] = useState('');
-   const [creating, setCreating] = useState(false);
-   const [showInput, setShowInput] = useState(false);
+const Sidebar = ({ rooms, activeRoom, onRoomSelect, onRoomCreate }) => {
+  const [newRoomName, setNewRoomName] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [showInput, setShowInput] = useState(false);
 
-   const handleCreateRoom = async () =>{
+  const handleCreateRoom = async () => {
     if (!newRoomName.trim()) return;
     setCreating(true);
-    try{
-        const res = await api.post('/rooms/create',{
-            name: newRoomName,
-            members:[],
-            isGroup:true
-        });
-        onRoomCreate(res.data.room);
-        setNewRoomName('');
-        setShowInput(false);
-
-    }catch (err){
-        console.log('Error creating room',err);
-    }finally{
-        setCreating(false);
+    try {
+      const res = await api.post('/rooms/create', {
+        name: newRoomName,
+        members: [],
+        isGroup: true
+      });
+      onRoomCreate(res.data.room);
+      setNewRoomName('');
+      setShowInput(false);
+    } catch (err) {
+      console.log('Error creating room:', err);
+    } finally {
+      setCreating(false);
     }
-   };
+  };
 
-   const getInitial = (name) => name?.charAt(0).toUpperCase();
+  const getInitial = (name) => name?.charAt(0).toUpperCase();
 
-   const gradients = [
+  const gradients = [
     'linear-gradient(135deg, #4F46E5, #7C3AED)',
     'linear-gradient(135deg, #0EA5E9, #6366F1)',
     'linear-gradient(135deg, #EC4899, #8B5CF6)',
     'linear-gradient(135deg, #10B981, #3B82F6)',
     'linear-gradient(135deg, #F59E0B, #EF4444)',
-   ];
+  ];
 
   return (
-  <div className="w-72 flex flex-col bg-white border-r border-gray-100 h-full">
-
-      {/* Sidebar Header */}
+    <div className="w-72 flex flex-col bg-white border-r border-gray-100 h-full">
       <div className="px-4 py-3 border-b border-gray-100">
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
@@ -53,7 +51,6 @@ const Sidebar = () => {
           </button>
         </div>
 
-        {/* Search bar */}
         <div className="flex items-center gap-2 bg-gray-100 rounded-full px-3 py-2">
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8"></circle>
@@ -66,7 +63,6 @@ const Sidebar = () => {
           />
         </div>
 
-        {/* Create room input */}
         {showInput && (
           <div className="mt-3 flex gap-2">
             <input
@@ -89,7 +85,6 @@ const Sidebar = () => {
         )}
       </div>
 
-      {/* Room List */}
       <div className="flex-1 overflow-y-auto py-2">
         {rooms.length === 0 ? (
           <div className="text-center py-10">
@@ -107,15 +102,12 @@ const Sidebar = () => {
                   : 'hover:bg-gray-50'
               }`}
             >
-              {/* Room avatar */}
               <div
                 style={{background: gradients[index % gradients.length]}}
                 className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0"
               >
                 {getInitial(room.name)}
               </div>
-
-              {/* Room info */}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-800 truncate">
                   {room.name}
@@ -124,8 +116,6 @@ const Sidebar = () => {
                   {room.lastMessage ? 'Last message sent' : 'No messages yet'}
                 </p>
               </div>
-
-              {/* Online dot */}
               <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0"></div>
             </div>
           ))
@@ -135,4 +125,4 @@ const Sidebar = () => {
   );
 };
 
-export default Sidebar
+export default Sidebar;

@@ -11,6 +11,7 @@ const Message = require('./models/Message');
 const authRoutes = require('./routes/auth');
 const roomRoutes = require('./routes/rooms');
 const messageRoutes = require('./routes/messages');
+const userRoutes = require('./routes/users');
 const socketHandler = require('./socket/index');
 
 const app = express();
@@ -24,6 +25,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/users', userRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'WhatsApp Clone API is running!' });
@@ -33,7 +35,6 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
   .catch((err) => console.log('DB error:', err));
 
-// Connect socket handler
 socketHandler(io);
 
 const PORT = process.env.PORT || 5000;
