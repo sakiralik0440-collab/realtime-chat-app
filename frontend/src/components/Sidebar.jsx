@@ -2,7 +2,7 @@ import { useState } from 'react';
 import api from '../utils/api';
 import SearchUser from './SearchUser';
 
-const Sidebar = ({ contacts, groups, activeRoom, onRoomSelect, onNewChat, onCreateGroup }) => {
+const Sidebar = ({ contacts, groups, activeRoom, onRoomSelect, onNewChat, onCreateGroup, unreadCounts = {} }) =>  {
   const [activeTab, setActiveTab] = useState('chats');
   const [showGroupForm, setShowGroupForm] = useState(false);
   const [groupName, setGroupName] = useState('');
@@ -35,47 +35,63 @@ const Sidebar = ({ contacts, groups, activeRoom, onRoomSelect, onNewChat, onCrea
   };
 
   const renderList = (list) => {
-    if (list.length === 0) {
-      return (
-        <div className="text-center py-10">
-          <p className="text-gray-400 text-sm">Nothing here yet</p>
-        </div>
-      );
-    }
-    return list.map((item, index) => (
-      <div
-        key={item._id}
-        onClick={() => onRoomSelect(item)}
-        className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all ${
-          activeRoom?._id === item._id
-            ? 'bg-purple-50 border-r-2 border-purple-600'
-            : 'hover:bg-gray-50'
-        }`}
-      >
-        <div className="relative">
-          <div
-            style={{background: gradients[index % gradients.length]}}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0"
-          >
-            {item.name?.charAt(0).toUpperCase()}
-          </div>
-          <div className="flex flex-col items-end gap-1">
-  {item.isOnline ? (
-    <div className="w-2.5 h-2.5 rounded-full bg-green-400"></div>
-  ) : (
-    <div className="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
-  )}
-</div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-800 truncate">{item.name}</p>
-          <p className="text-xs text-gray-400 truncate">
-            {item.phone || (item.isGroup ? `${item.members?.length} members` : '')}
-          </p>
-        </div>
+  if (list.length === 0) {
+    return (
+      <div className="text-center py-10">
+        <p className="text-gray-400 text-sm">Nothing here yet</p>
       </div>
-    ));
-  };
+    );
+  }
+  return list.map((item, index) => (
+    <div
+      key={item._id}
+      onClick={() => onRoomSelect(item)}
+      className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all ${
+        activeRoom?._id === item._id
+          ? 'bg-purple-50 border-r-2 border-purple-600'
+          : 'hover:bg-gray-50'
+      }`}
+    >
+      {/* Avatar with online dot */}
+      <div className="relative flex-shrink-0">
+        <div
+          style={{background: gradients[index % gradients.length]}}
+          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm"
+        >
+          {item.name?.charAt(0).toUpperCase()}
+        </div>
+        {/* Online dot on avatar */}
+        {item.isOnline ? (
+          <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-400 border-2 border-white"></div>
+        ) : (
+          <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-gray-300 border-2 border-white"></div>
+        )}
+      </div>
+
+      {/* Name + last message */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-800 truncate">{item.name}</p>
+        <p className="text-xs text-gray-400 truncate">
+          {item.phone || (item.isGroup ? `${item.members?.length} members` : '')}
+        </p>
+      </div>
+
+      {/* Unread badge */}
+      <div className="flex flex-col items-end gap-1">
+        {unreadCounts[item._id] > 0 && (
+          <div
+            style={{background: 'linear-gradient(135deg, #4F46E5, #7C3AED)'}}
+            className="min-w-5 h-5 rounded-full flex items-center justify-center px-1"
+          >
+            <span className="text-white text-xs font-medium">
+              {unreadCounts[item._id] > 99 ? '99+' : unreadCounts[item._id]}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  ));
+};
 
   return (
     <div className="w-72 flex flex-col bg-white border-r border-gray-100 h-full">

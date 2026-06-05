@@ -24,7 +24,7 @@ const Chat = () => {
   const [foundMember, setFoundMember] = useState(null);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState([]);
-
+  const [unreadCounts, setUnreadCounts] = useState({});
 
   useEffect(() => {
     const newSocket = io('http://localhost:5000');
@@ -43,32 +43,31 @@ const Chat = () => {
       setTypingUser('');
     });
 
-    newSocket.on('new_chat_notification', async () => {
+    newSocket.on('new_chat_notification', async ({ roomId }) => {
       fetchContacts();
       fetchGroups();
+      fetchUnreadCounts();
     });
 
     newSocket.on('user_status_change', ({ userId, isOnline, lastSeen }) => {
-  setOnlineUsers((prev) => {
-    if (isOnline) {
-      return [...new Set([...prev, userId])];
-    } else {
-      return prev.filter(id => id !== userId);
-    }
-  });
+      setOnlineUsers((prev) => {
+        if (isOnline) {
+          return [...new Set([...prev, userId])];
+        } else {
+          return prev.filter(id => id !== userId);
+        }
+      });
+      setContacts((prev) => prev.map(c => {
+        if (c.otherUserId?.toString() === userId) {
+          return { ...c, isOnline, lastSeen };
+        }
+        return c;
+      }));
+    });
 
-  // Update contact list status
-  setContacts((prev) => prev.map(c => {
-    if (c.otherUserId?.toString() === userId) {
-      return { ...c, isOnline, lastSeen };
-    }
-    return c;
-  }));
-});
-
-newSocket.on('online_users', (users) => {
-  setOnlineUsers(users);
-});
+    newSocket.on('online_users', (users) => {
+      setOnlineUsers(users);
+    });
 
     return () => newSocket.disconnect();
   }, [user.id]);
@@ -76,6 +75,7 @@ newSocket.on('online_users', (users) => {
   useEffect(() => {
     fetchContacts();
     fetchGroups();
+    fetchUnreadCounts();
   }, []);
 
   useEffect(() => {
@@ -100,6 +100,15 @@ newSocket.on('online_users', (users) => {
     }
   };
 
+  const fetchUnreadCounts = async () => {
+    try {
+      const res = await api.get('/messages/unread/counts');
+      setUnreadCounts(res.data);
+    } catch (err) {
+      console.log('Error fetching unread counts:', err);
+    }
+  };
+
   const handleRoomSelect = async (room) => {
     if (activeRoom && socket) {
       socket.emit('leave_room', activeRoom._id);
@@ -109,6 +118,19 @@ newSocket.on('online_users', (users) => {
     setShowGroupInfo(false);
     setShowAddMember(false);
     setFoundMember(null);
+
+    // Mark messages as read
+    try {
+      await api.post(`/messages/read/${room._id}`);
+      setUnreadCounts((prev) => {
+        const updated = { ...prev };
+        delete updated[room._id];
+        return updated;
+      });
+    } catch (err) {
+      console.log('Error marking as read:', err);
+    }
+
     if (socket) {
       socket.emit('join_room', room._id);
     }
@@ -185,16 +207,16 @@ newSocket.on('online_users', (users) => {
   };
 
   const handleDeleteMessage = (messageId, updatedMessage) => {
-  setMessages((prev) => prev.map(m =>
-    m._id === messageId ? updatedMessage : m
-  ));
-};
+    setMessages((prev) => prev.map(m =>
+      m._id === messageId ? updatedMessage : m
+    ));
+  };
 
-const handleEditMessage = (messageId, updatedMessage) => {
-  setMessages((prev) => prev.map(m =>
-    m._id === messageId ? updatedMessage : m
-  ));
-};
+  const handleEditMessage = (messageId, updatedMessage) => {
+    setMessages((prev) => prev.map(m =>
+      m._id === messageId ? updatedMessage : m
+    ));
+  };
 
   const handleDeleteRoom = async () => {
     if (!activeRoom) return;
@@ -237,6 +259,7 @@ const handleEditMessage = (messageId, updatedMessage) => {
           onRoomSelect={handleRoomSelect}
           onNewChat={handleNewChat}
           onCreateGroup={handleCreateGroup}
+          unreadCounts={unreadCounts}
         />
 
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -254,13 +277,13 @@ const handleEditMessage = (messageId, updatedMessage) => {
                   <div>
                     <p className="text-sm font-medium text-gray-800">{activeRoom.name}</p>
                     <p className="text-xs text-purple-500">
-  {activeRoom.isGroup
-    ? `${activeRoom.members?.length} members`
-    : activeRoom.isOnline
-      ? '🟢 Online'
-      : formatLastSeen(activeRoom.lastSeen)
-  }
-</p>
+                      {activeRoom.isGroup
+                        ? `${activeRoom.members?.length} members`
+                        : activeRoom.isOnline
+                          ? '🟢 Online'
+                          : formatLastSeen(activeRoom.lastSeen)
+                      }
+                    </p>
                   </div>
                 </div>
 
@@ -357,11 +380,11 @@ const handleEditMessage = (messageId, updatedMessage) => {
                     ) : (
                       messages.map((message) => (
                         <MessageBubble
-  key={message._id}
-  message={message}
-  onDeleteMessage={handleDeleteMessage}
-  onEditMessage={handleEditMessage}
-/>
+                          key={message._id}
+                          message={message}
+                          onDeleteMessage={handleDeleteMessage}
+                          onEditMessage={handleEditMessage}
+                        />
                       ))
                     )}
 

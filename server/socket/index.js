@@ -33,10 +33,19 @@ const socketHandler = (io) => {
       try {
         const { roomId, senderId, content } = data;
 
+        // Get room members
+        const room = await Room.findById(roomId).populate('members', '_id');
+
+        // unreadBy = all members except sender
+        const unreadBy = room.members
+          .map(m => m._id)
+          .filter(id => id.toString() !== senderId);
+
         const newMessage = new Message({
           room: roomId,
           sender: senderId,
-          content
+          content,
+          unreadBy
         });
 
         await newMessage.save();
@@ -48,7 +57,6 @@ const socketHandler = (io) => {
         io.to(roomId).emit('receive_message', populatedMessage);
 
         // Notify all members
-        const room = await Room.findById(roomId).populate('members', '_id');
         room.members.forEach(member => {
           const memberSocketId = onlineUsers[member._id.toString()];
           if (memberSocketId) {

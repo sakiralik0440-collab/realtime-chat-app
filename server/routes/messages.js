@@ -154,4 +154,55 @@ router.put('/:messageId', auth, async (req, res) => {
   }
 });
 
+// Mark all messages in room as read
+router.post('/read/:roomId', auth, async (req, res) => {
+  try {
+    await Message.updateMany(
+      {
+        room: req.params.roomId,
+        unreadBy: req.user.id
+      },
+      {
+        $pull: { unreadBy: req.user.id },
+        $addToSet: { readBy: req.user.id }
+      }
+    );
+
+    res.json({ message: 'Messages marked as read' });
+
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Get unread count for all rooms
+router.get('/unread/counts', auth, async (req, res) => {
+  try {
+    const counts = await Message.aggregate([
+      {
+        $match: {
+          unreadBy: require('mongoose').Types.ObjectId.createFromHexString(req.user.id)
+        }
+      },
+      {
+        $group: {
+          _id: '$room',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Convert to object { roomId: count }
+    const result = {};
+    counts.forEach(c => {
+      result[c._id.toString()] = c.count;
+    });
+
+    res.json(result);
+
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
 module.exports = router;
