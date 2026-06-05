@@ -40,6 +40,9 @@ const Navbar = () => {
         >
           Logout
         </button>
+
+        {/* Delete chat/group button */}
+
       </div>
     </div>
   );

@@ -98,4 +98,60 @@ router.get('/:roomId', auth, async (req, res) => {
   }
 });
 
+// Delete a message
+// Delete a message (soft delete)
+router.delete('/:messageId', auth, async (req, res) => {
+  try {
+    const message = await Message.findById(req.params.messageId);
+
+    if (!message) {
+      return res.status(404).json({ message: 'Message not found' });
+    }
+
+    if (message.sender.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+
+    message.content = 'This message was deleted';
+    message.isDeleted = true;
+    await message.save();
+
+    const updatedMessage = await Message.findById(message._id)
+      .populate('sender', 'username email');
+
+    res.json(updatedMessage);
+
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Edit a message
+router.put('/:messageId', auth, async (req, res) => {
+  try {
+    const { content } = req.body;
+
+    const message = await Message.findById(req.params.messageId);
+    if (!message) {
+      return res.status(404).json({ message: 'Message not found' });
+    }
+
+    if (message.sender.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+
+    message.content = content;
+    message.isEdited = true;
+    await message.save();
+
+    const updatedMessage = await Message.findById(message._id)
+      .populate('sender', 'username email');
+
+    res.json(updatedMessage);
+
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
 module.exports = router;

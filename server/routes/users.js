@@ -5,10 +5,19 @@ const Room = require('../models/Room');
 const auth = require('../middleware/auth');
 
 // Search user by phone number
-router.get('/search/:phone', auth, async (req, res) => {
+
+// Search user by phone number or name
+router.get('/search/:query', auth, async (req, res) => {
   try {
-    const user = await User.findOne({ phone: req.params.phone })
-      .select('-password');
+    const query = req.params.query;
+
+    // Search by phone or username
+    const user = await User.findOne({
+      $or: [
+        { phone: query },
+        { username: { $regex: query, $options: 'i' } }
+      ]
+    }).select('-password');
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -88,6 +97,24 @@ router.get('/contacts', auth, async (req, res) => {
     });
 
     res.json(contacts);
+
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+// Get user online status
+router.get('/status/:userId', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId)
+      .select('username isOnline lastSeen');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user);
 
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
