@@ -3,6 +3,7 @@ import { useAuth } from './context/AuthContext';
 import Register from './pages/Register';
 import Login from './pages/Login';
 import Chat from './pages/Chat';
+import Profile from './pages/Profile';
 
 function App() {
   const { user, loading } = useAuth();
@@ -22,6 +23,7 @@ function App() {
         <Route path="/register" element={!user ? <Register /> : <Navigate to="/chat" />} />
         <Route path="/login" element={!user ? <Login /> : <Navigate to="/chat" />} />
         <Route path="/chat" element={user ? <Chat /> : <Navigate to="/login" />} />
+        <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
       </Routes>
     </Router>
   );

@@ -30,44 +30,43 @@ const socketHandler = (io) => {
     });
 
     socket.on('send_message', async (data) => {
-      try {
-        const { roomId, senderId, content } = data;
+  try {
+    const { roomId, senderId, content, replyTo } = data;
 
-        // Get room members
-        const room = await Room.findById(roomId).populate('members', '_id');
+    const room = await Room.findById(roomId).populate('members', '_id');
 
-        // unreadBy = all members except sender
-        const unreadBy = room.members
-          .map(m => m._id)
-          .filter(id => id.toString() !== senderId);
+    const unreadBy = room.members
+      .map(m => m._id)
+      .filter(id => id.toString() !== senderId);
 
-        const newMessage = new Message({
-          room: roomId,
-          sender: senderId,
-          content,
-          unreadBy
-        });
+    const newMessage = new Message({
+      room: roomId,
+      sender: senderId,
+      content,
+      unreadBy,
+      replyTo: replyTo || null
+    });
 
-        await newMessage.save();
-        await Room.findByIdAndUpdate(roomId, { lastMessage: newMessage._id });
+    await newMessage.save();
+    await Room.findByIdAndUpdate(roomId, { lastMessage: newMessage._id });
 
-        const populatedMessage = await Message.findById(newMessage._id)
-          .populate('sender', 'username email');
+    const populatedMessage = await Message.findById(newMessage._id)
+      .populate('sender', 'username email')
+      .populate('replyTo');
 
-        io.to(roomId).emit('receive_message', populatedMessage);
+    io.to(roomId).emit('receive_message', populatedMessage);
 
-        // Notify all members
-        room.members.forEach(member => {
-          const memberSocketId = onlineUsers[member._id.toString()];
-          if (memberSocketId) {
-            io.to(memberSocketId).emit('new_chat_notification', { roomId });
-          }
-        });
-
-      } catch (err) {
-        console.log('Socket message error:', err.message);
+    room.members.forEach(member => {
+      const memberSocketId = onlineUsers[member._id.toString()];
+      if (memberSocketId) {
+        io.to(memberSocketId).emit('new_chat_notification', { roomId });
       }
     });
+
+  } catch (err) {
+    console.log('Socket message error:', err.message);
+  }
+});
 
     socket.on('typing', (data) => {
       const { roomId, username } = data;
@@ -111,6 +110,24 @@ socket.on('message_reaction', async (data) => {
 
   } catch (err) {
     console.log('Reaction error:', err.message);
+  }
+});
+
+// Mark messages as seen
+socket.on('messages_seen', async (data) => {
+  try {
+    const { roomId, userId } = data;
+
+    await Message.updateMany(
+      { room: roomId, sender: { $ne: userId }, status: { $ne: 'seen' } },
+      { status: 'seen' }
+    );
+
+    // Notify room that messages are seen
+    io.to(roomId).emit('messages_seen_update', { roomId, userId });
+
+  } catch (err) {
+    console.log('Seen status error:', err.message);
   }
 });
 

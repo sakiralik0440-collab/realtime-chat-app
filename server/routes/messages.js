@@ -6,22 +6,25 @@ const auth = require('../middleware/auth');
 const { uploadImage, uploadFile } = require('../middleware/upload');
 
 // Send text message
+// Send text message
 router.post('/send', auth, async (req, res) => {
   try {
-    const { roomId, content } = req.body;
+    const { roomId, content, replyTo } = req.body;
 
     const newMessage = new Message({
       room: roomId,
       sender: req.user.id,
       content,
-      messageType: 'text'
+      messageType: 'text',
+      replyTo: replyTo || null
     });
 
     await newMessage.save();
     await Room.findByIdAndUpdate(roomId, { lastMessage: newMessage._id });
 
     const populatedMessage = await Message.findById(newMessage._id)
-      .populate('sender', 'username email');
+      .populate('sender', 'username email')
+      .populate('replyTo');
 
     res.status(201).json(populatedMessage);
 

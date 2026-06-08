@@ -25,6 +25,7 @@ const Chat = () => {
   const [showGroupInfo, setShowGroupInfo] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [unreadCounts, setUnreadCounts] = useState({});
+  const [replyTo, setReplyTo] = useState(null);
 
   useEffect(() => {
     const newSocket = io('http://localhost:5000');
@@ -46,7 +47,13 @@ const Chat = () => {
     newSocket.on('message_updated', (updatedMessage) => {
   setMessages((prev) => prev.map(m =>
     m._id === updatedMessage._id ? updatedMessage : m
-  ));
+  )); 
+
+  newSocket.on('messages_seen_update', ({ roomId }) => {
+  if (activeRoom?._id === roomId) {
+    setMessages((prev) => prev.map(m => ({ ...m, status: 'seen' })));
+  }
+});
 });
 
     newSocket.on('new_chat_notification', async ({ roomId }) => {
@@ -140,6 +147,10 @@ const Chat = () => {
     if (socket) {
       socket.emit('join_room', room._id);
     }
+    socket.emit('messages_seen', {
+  roomId: room._id,
+  userId: user.id
+});
     try {
       const res = await api.get(`/messages/${room._id}`);
       setMessages(res.data);
@@ -148,15 +159,17 @@ const Chat = () => {
     }
   };
 
-  const handleSendMessage = (content) => {
-    if (!activeRoom || !socket) return;
-    socket.emit('send_message', {
-      roomId: activeRoom._id,
-      senderId: user.id,
-      content
-    });
-    socket.emit('stop_typing', activeRoom._id);
-  };
+  const handleSendMessage = (content, replyToId) => {
+  if (!activeRoom || !socket) return;
+  socket.emit('send_message', {
+    roomId: activeRoom._id,
+    senderId: user.id,
+    content,
+    replyTo: replyToId || null
+  });
+  socket.emit('stop_typing', activeRoom._id);
+  setReplyTo(null);
+};
 
   const handleTyping = () => {
     if (!activeRoom || !socket) return;
@@ -392,6 +405,7 @@ const Chat = () => {
   onEditMessage={handleEditMessage}
   socket={socket}
   activeRoomId={activeRoom._id}
+  onReply={(msg) => setReplyTo(msg)}
 />
                       ))
                     )}
@@ -410,10 +424,12 @@ const Chat = () => {
                   </div>
 
                   <MessageInput
-                    onSendMessage={handleSendMessage}
-                    onTyping={handleTyping}
-                    activeRoomId={activeRoom._id}
-                  />
+  onSendMessage={handleSendMessage}
+  onTyping={handleTyping}
+  activeRoomId={activeRoom._id}
+  replyTo={replyTo}
+  onCancelReply={() => setReplyTo(null)}
+/>
                 </div>
 
                 {/* Group Info Panel */}

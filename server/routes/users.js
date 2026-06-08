@@ -121,4 +121,30 @@ router.get('/status/:userId', auth, async (req, res) => {
   }
 });
 
+// Update profile
+router.put('/profile', auth, async (req, res) => {
+  try {
+    const { username, phone } = req.body;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      { username, phone },
+      { new: true }
+    ).select('-password');
+
+    res.json({
+      message: 'Profile updated',
+      user: {
+        id: updatedUser._id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        phone: updatedUser.phone
+      }
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
 module.exports = router;

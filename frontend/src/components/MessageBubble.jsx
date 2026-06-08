@@ -4,7 +4,7 @@ import api from '../utils/api';
 
 const EMOJIS = ['❤️', '👍', '😂', '😮', '😢', '🙏'];
 
-const MessageBubble = ({ message, onDeleteMessage, onEditMessage, onReaction, socket, activeRoomId }) => {
+  const MessageBubble = ({ message, onDeleteMessage, onEditMessage, onReaction, socket, activeRoomId, onReply }) => {
   const { user } = useAuth();
   const isMyMessage = message.sender._id === user?.id;
   const [showMenu, setShowMenu] = useState(false);
@@ -194,6 +194,15 @@ const MessageBubble = ({ message, onDeleteMessage, onEditMessage, onReaction, so
             >
               ✕ Cancel
             </button>
+            <button
+             onClick={() => {
+              if (onReply) onReply(message);
+               setShowMenu(false);
+               }}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full text-left"
+>
+              ↩️ Reply
+            </button>
           </div>
         )}
 
@@ -220,6 +229,21 @@ const MessageBubble = ({ message, onDeleteMessage, onEditMessage, onReaction, so
           onTouchStart={handlePressStart}
           onTouchEnd={handlePressEnd}
         >
+          {/* Reply preview inside bubble */}
+{message.replyTo && (
+  <div className={`mb-2 px-3 py-1.5 rounded-xl border-l-4 ${
+    isMyMessage
+      ? 'bg-white bg-opacity-20 border-white'
+      : 'bg-gray-50 border-purple-400'
+  }`}>
+    <p className={`text-xs font-medium ${isMyMessage ? 'text-white' : 'text-purple-600'}`}>
+      {message.replyTo.sender?.username || 'Unknown'}
+    </p>
+    <p className={`text-xs truncate ${isMyMessage ? 'text-white opacity-80' : 'text-gray-500'}`}>
+      {message.replyTo.content || '📎 Attachment'}
+    </p>
+  </div>
+)}
           {renderContent()}
         </div>
 
