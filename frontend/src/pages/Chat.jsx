@@ -43,6 +43,12 @@ const Chat = () => {
       setTypingUser('');
     });
 
+    newSocket.on('message_updated', (updatedMessage) => {
+  setMessages((prev) => prev.map(m =>
+    m._id === updatedMessage._id ? updatedMessage : m
+  ));
+});
+
     newSocket.on('new_chat_notification', async ({ roomId }) => {
       fetchContacts();
       fetchGroups();
@@ -380,11 +386,13 @@ const Chat = () => {
                     ) : (
                       messages.map((message) => (
                         <MessageBubble
-                          key={message._id}
-                          message={message}
-                          onDeleteMessage={handleDeleteMessage}
-                          onEditMessage={handleEditMessage}
-                        />
+  key={message._id}
+  message={message}
+  onDeleteMessage={handleDeleteMessage}
+  onEditMessage={handleEditMessage}
+  socket={socket}
+  activeRoomId={activeRoom._id}
+/>
                       ))
                     )}
 

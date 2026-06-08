@@ -205,4 +205,49 @@ router.get('/unread/counts', auth, async (req, res) => {
   }
 });
 
+// Add or remove reaction
+router.post('/:messageId/react', auth, async (req, res) => {
+  try {
+    const { emoji } = req.body;
+    const message = await Message.findById(req.params.messageId);
+
+    if (!message) {
+      return res.status(404).json({ message: 'Message not found' });
+    }
+
+    // Check if user already reacted with same emoji
+    const existingReaction = message.reactions.find(
+      r => r.user.toString() === req.user.id && r.emoji === emoji
+    );
+
+    if (existingReaction) {
+      // Remove reaction (toggle off)
+      message.reactions = message.reactions.filter(
+        r => !(r.user.toString() === req.user.id && r.emoji === emoji)
+      );
+    } else {
+      // Remove any previous reaction by this user
+      message.reactions = message.reactions.filter(
+        r => r.user.toString() !== req.user.id
+      );
+      // Add new reaction
+      message.reactions.push({
+        emoji,
+        user: req.user.id,
+        username: req.user.username
+      });
+    }
+
+    await message.save();
+
+    const updatedMessage = await Message.findById(message._id)
+      .populate('sender', 'username email');
+
+    res.json(updatedMessage);
+
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
 module.exports = router;

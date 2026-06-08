@@ -78,6 +78,42 @@ const socketHandler = (io) => {
       socket.to(roomId).emit('user_stop_typing');
     });
 
+    // Message reaction
+socket.on('message_reaction', async (data) => {
+  try {
+    const { messageId, emoji, roomId, userId, username } = data;
+
+    const message = await Message.findById(messageId);
+    if (!message) return;
+
+    const existingReaction = message.reactions.find(
+      r => r.user.toString() === userId && r.emoji === emoji
+    );
+
+    if (existingReaction) {
+      message.reactions = message.reactions.filter(
+        r => !(r.user.toString() === userId && r.emoji === emoji)
+      );
+    } else {
+      message.reactions = message.reactions.filter(
+        r => r.user.toString() !== userId
+      );
+      message.reactions.push({ emoji, user: userId, username });
+    }
+
+    await message.save();
+
+    const updatedMessage = await Message.findById(message._id)
+      .populate('sender', 'username email');
+
+    // Send updated message to everyone in room
+    io.to(roomId).emit('message_updated', updatedMessage);
+
+  } catch (err) {
+    console.log('Reaction error:', err.message);
+  }
+});
+
     socket.on('disconnect', async () => {
       const userId = Object.keys(onlineUsers).find(
         (key) => onlineUsers[key] === socket.id

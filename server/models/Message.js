@@ -44,7 +44,17 @@ const messageSchema = new mongoose.Schema({
   isDeleted: {
     type: Boolean,
     default: false
+  },
+  reactions: [
+  {
+    emoji: String,
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    username: String
   }
+]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Message', messageSchema);
