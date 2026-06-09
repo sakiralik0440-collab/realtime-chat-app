@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import api from '../utils/api';
 import SearchUser from './SearchUser';
+import theme from '../theme';
 
 const Sidebar = ({ contacts, groups, activeRoom, onRoomSelect, onNewChat, onCreateGroup, unreadCounts = {} }) =>  {
   const [activeTab, setActiveTab] = useState('chats');
@@ -9,7 +10,7 @@ const Sidebar = ({ contacts, groups, activeRoom, onRoomSelect, onNewChat, onCrea
   const [creating, setCreating] = useState(false);
 
   const gradients = [
-    'linear-gradient(135deg, #4F46E5, #7C3AED)',
+    theme.gradientTwo,
     'linear-gradient(135deg, #0EA5E9, #6366F1)',
     'linear-gradient(135deg, #EC4899, #8B5CF6)',
     'linear-gradient(135deg, #10B981, #3B82F6)',
@@ -94,79 +95,80 @@ const Sidebar = ({ contacts, groups, activeRoom, onRoomSelect, onNewChat, onCrea
 };
 
   return (
-    <div className="w-72 flex flex-col bg-white border-r border-gray-100 h-full">
+  <div style={{height: '100%', display: 'flex', flexDirection: 'column', background: 'white', overflow: 'hidden'}}>
 
-      {/* Tabs */}
-      <div className="flex border-b border-gray-100">
-        {['chats', 'groups', 'new'].map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-3 text-xs font-medium capitalize transition ${
-              activeTab === tab
-                ? 'text-purple-600 border-b-2 border-purple-600'
-                : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            {tab === 'new' ? '+ New' : tab}
-          </button>
-        ))}
-      </div>
-
-      {/* Chats tab */}
-      {activeTab === 'chats' && (
-        <div className="flex-1 overflow-y-auto">
-          {renderList(contacts)}
-        </div>
-      )}
-
-      {/* Groups tab */}
-      {activeTab === 'groups' && (
-        <div className="flex-1 overflow-y-auto">
-          <div className="px-4 py-3 border-b border-gray-100">
-            <button
-              onClick={() => setShowGroupForm(!showGroupForm)}
-              style={{background: 'linear-gradient(135deg, #4F46E5, #7C3AED)'}}
-              className="w-full text-white text-sm py-2 rounded-xl"
-            >
-              {showGroupForm ? 'Cancel' : '+ Create Group'}
-            </button>
-            {showGroupForm && (
-              <div className="mt-3 flex gap-2">
-                <input
-                  type="text"
-                  value={groupName}
-                  onChange={(e) => setGroupName(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleCreateGroup()}
-                  placeholder="Group name..."
-                  className="flex-1 bg-gray-100 rounded-full px-3 py-1.5 text-sm outline-none"
-                />
-                <button
-                  onClick={handleCreateGroup}
-                  disabled={creating}
-                  style={{background: 'linear-gradient(135deg, #4F46E5, #7C3AED)'}}
-                  className="px-3 py-1.5 rounded-full text-white text-xs disabled:opacity-50"
-                >
-                  {creating ? '...' : 'Add'}
-                </button>
-              </div>
-            )}
-          </div>
-          {renderList(groups)}
-        </div>
-      )}
-
-      {/* New chat tab */}
-      {activeTab === 'new' && (
-        <div className="flex-1 overflow-y-auto">
-          <SearchUser onStartChat={(room) => {
-            onNewChat(room);
-            setActiveTab('chats');
-          }} />
-        </div>
-      )}
+    {/* Tabs */}
+    <div className="flex border-b border-gray-100 flex-shrink-0">
+      {['chats', 'groups', 'new'].map(tab => (
+        <button
+          key={tab}
+          onClick={() => setActiveTab(tab)}
+          className={`flex-1 py-3 text-xs font-medium capitalize transition ${
+            activeTab === tab
+              ? 'border-b-2'
+              : 'text-gray-400 hover:text-gray-600'
+          }`}
+          style={activeTab === tab ? {color: theme.primary, borderColor: theme.primary} : {}}
+        >
+          {tab === 'new' ? '+ New' : tab}
+        </button>
+      ))}
     </div>
-  );
+
+    {/* Chats tab */}
+    {activeTab === 'chats' && (
+      <div style={{flex: 1, overflowY: 'auto'}}>
+        {renderList(contacts)}
+      </div>
+    )}
+
+    {/* Groups tab */}
+    {activeTab === 'groups' && (
+      <div style={{flex: 1, overflowY: 'auto'}}>
+        <div className="px-4 py-3 border-b border-gray-100 flex-shrink-0">
+          <button
+            onClick={() => setShowGroupForm(!showGroupForm)}
+            style={{background: theme.gradientTwo}}
+            className="w-full text-white text-sm py-2 rounded-xl"
+          >
+            {showGroupForm ? 'Cancel' : '+ Create Group'}
+          </button>
+          {showGroupForm && (
+            <div className="mt-3 flex gap-2">
+              <input
+                type="text"
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleCreateGroup()}
+                placeholder="Group name..."
+                className="flex-1 bg-gray-100 rounded-full px-3 py-1.5 text-sm outline-none"
+              />
+              <button
+                onClick={handleCreateGroup}
+                disabled={creating}
+                style={{background: theme.gradientTwo}}
+                className="px-3 py-1.5 rounded-full text-white text-xs disabled:opacity-50"
+              >
+                {creating ? '...' : 'Add'}
+              </button>
+            </div>
+          )}
+        </div>
+        {renderList(groups)}
+      </div>
+    )}
+
+    {/* New chat tab */}
+    {activeTab === 'new' && (
+      <div style={{flex: 1, overflowY: 'auto'}}>
+        <SearchUser onStartChat={(room) => {
+          onNewChat(room);
+          setActiveTab('chats');
+        }} />
+      </div>
+    )}
+  </div>
+);
 };
 
 export default Sidebar;

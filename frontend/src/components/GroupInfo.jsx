@@ -1,5 +1,6 @@
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import theme from '../theme';
 
 const GroupInfo = ({ room, onClose, onDeleteGroup, onMemberRemoved }) => {
   const { user } = useAuth();
@@ -7,7 +8,7 @@ const GroupInfo = ({ room, onClose, onDeleteGroup, onMemberRemoved }) => {
                     room.createdBy === user?.id;
 
   const gradients = [
-    'linear-gradient(135deg, #4F46E5, #7C3AED)',
+    theme.gradientTwo,
     'linear-gradient(135deg, #0EA5E9, #6366F1)',
     'linear-gradient(135deg, #EC4899, #8B5CF6)',
     'linear-gradient(135deg, #10B981, #3B82F6)',

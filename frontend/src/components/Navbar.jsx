@@ -1,11 +1,14 @@
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import theme from '../theme';
+import { useState } from 'react';
 
-const Navbar = () => {
+const Navbar = ({ onMenuClick }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
+  const [showMenu, setShowMenu] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -14,55 +17,80 @@ const Navbar = () => {
 
   return (
     <div
-      style={{background: 'linear-gradient(135deg, #4F46E5, #7C3AED)'}}
-      className="text-white px-4 py-3 flex items-center justify-between shadow-lg"
+      style={{background: theme.gradient}}
+      className="text-white px-4 py-3 flex items-center justify-between shadow-lg relative"
     >
-      {/* Left — Logo */}
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-white bg-opacity-20 flex items-center justify-center">
-          <span className="text-white text-lg">💬</span>
-        </div>
-        <div>
-          <h1 className="text-lg font-semibold">ChatApp</h1>
-          <p className="text-xs text-white opacity-70">
-            <span className="inline-block w-2 h-2 bg-green-400 rounded-full mr-1"></span>
-            Online
-          </p>
-        </div>
+      {/* Left — App name only */}
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+  <div className="w-8 h-8 rounded-xl bg-white bg-opacity-20 flex items-center justify-center text-lg">
+    {theme.logo}
+  </div>
+  <div>
+    <h1 className="text-base font-bold tracking-wide">{theme.name}</h1>
+    <p className="text-xs opacity-60">{theme.tagline}</p>
+  </div>
+</div>
+        <p className="text-xs opacity-70 flex items-center gap-1">
+          <span className="inline-block w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+          Online
+        </p>
       </div>
 
-      {/* Right — Avatar + Dark mode + Logout */}
-      <div className="flex items-center gap-3">
+      {/* Right — Avatar only */}
+      <button
+        onClick={() => setShowMenu(!showMenu)}
+        className="w-9 h-9 rounded-full bg-white bg-opacity-20 border-2 border-white border-opacity-40 flex items-center justify-center text-sm font-bold overflow-hidden"
+      >
+        {user?.avatar ? (
+          <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
+        ) : (
+          user?.username?.charAt(0).toUpperCase()
+        )}
+      </button>
 
-        {/* Dark mode toggle button */}
-        <button
-          onClick={toggleTheme}
-          className="text-sm px-2 py-1 rounded-full bg-white bg-opacity-15 hover:bg-opacity-25 transition"
-        >
-          {isDark ? '☀️' : '🌙'}
-        </button>
+      {/* Dropdown menu */}
+      {showMenu && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setShowMenu(false)}
+          />
+          <div className="absolute right-2 top-14 bg-white rounded-2xl shadow-xl z-50 overflow-hidden w-48">
 
-        {/* Clickable avatar → goes to profile page */}
-        <button
-          onClick={() => navigate('/profile')}
-          className="w-8 h-8 rounded-full bg-white bg-opacity-20 border border-white border-opacity-40 flex items-center justify-center text-sm font-medium hover:bg-opacity-30 transition"
-        >
-          {user?.username?.charAt(0).toUpperCase()}
-        </button>
+            {/* User info */}
+            <div className="px-4 py-3 border-b border-gray-100">
+              <p className="text-sm font-medium text-gray-800">{user?.username}</p>
+              <p className="text-xs text-gray-400">{user?.email}</p>
+            </div>
 
-        {/* Username — hidden on mobile */}
-        <span className="text-sm hidden sm:block">
-          {user?.username}
-        </span>
+            {/* Profile */}
+            <button
+              onClick={() => { navigate('/profile'); setShowMenu(false); }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              <span>👤</span> My Profile
+            </button>
 
-        {/* Logout button */}
-        <button
-          onClick={handleLogout}
-          className="text-sm px-3 py-1 rounded-full border border-white border-opacity-30 bg-white bg-opacity-15 hover:bg-opacity-25 transition"
-        >
-          Logout
-        </button>
-      </div>
+            {/* Dark mode */}
+            <button
+              onClick={() => { toggleTheme(); setShowMenu(false); }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-t border-gray-100"
+            >
+              <span>{isDark ? '☀️' : '🌙'}</span>
+              {isDark ? 'Light Mode' : 'Dark Mode'}
+            </button>
+
+            {/* Logout */}
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-red-50 border-t border-gray-100"
+            >
+              <span>🚪</span> Logout
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 };

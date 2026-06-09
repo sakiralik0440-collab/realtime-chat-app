@@ -124,11 +124,11 @@ router.get('/status/:userId', auth, async (req, res) => {
 // Update profile
 router.put('/profile', auth, async (req, res) => {
   try {
-    const { username, phone } = req.body;
+    const { username, phone, avatar } = req.body;
 
     const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
-      { username, phone },
+      { username, phone, avatar },
       { new: true }
     ).select('-password');
 
@@ -138,10 +138,30 @@ router.put('/profile', auth, async (req, res) => {
         id: updatedUser._id,
         username: updatedUser.username,
         email: updatedUser.email,
-        phone: updatedUser.phone
+        phone: updatedUser.phone,
+        avatar: updatedUser.avatar
       }
     });
 
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Upload avatar
+router.post('/upload-avatar', auth, async (req, res) => {
+  try {
+    const { uploadImage } = require('../middleware/upload');
+
+    uploadImage.single('image')(req, res, async (err) => {
+      if (err) return res.status(400).json({ message: 'Upload failed' });
+
+      const avatarUrl = req.file.path;
+
+      await User.findByIdAndUpdate(req.user.id, { avatar: avatarUrl });
+
+      res.json({ avatarUrl });
+    });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }

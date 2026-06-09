@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import api from '../utils/api';
 import EmojiPicker from 'emoji-picker-react';
+import theme from '../theme';
 
 const MessageInput = ({ onSendMessage, onTyping, activeRoomId, replyTo, onCancelReply }) => {
   const [message, setMessage] = useState('');
@@ -152,7 +153,7 @@ const MessageInput = ({ onSendMessage, onTyping, activeRoomId, replyTo, onCancel
         <button
           onClick={handleSend}
           disabled={!message.trim() || uploading}
-          style={{background: message.trim() ? 'linear-gradient(135deg, #4F46E5, #7C3AED)' : '#E5E7EB'}}
+          style={{background: message.trim() ? theme.gradientTwo : '#E5E7EB'}}
           className="w-10 h-10 rounded-full flex items-center justify-center transition-all disabled:cursor-not-allowed"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -1,0 +1,23 @@
+{
+  "name": "realtime-chat-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sakiralik0440-collab/realtime-chat-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sakiralik0440-collab/realtime-chat-app/issues"
+  },
+  "homepage": "https://github.com/sakiralik0440-collab/realtime-chat-app#readme",
+  "dependencies": {
+    "concurrently": "^10.0.3"
+  }
+}

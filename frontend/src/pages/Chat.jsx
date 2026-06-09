@@ -8,6 +8,7 @@ import MessageBubble from '../components/MessageBubble';
 import MessageInput from '../components/MessageInput';
 import GroupInfo from '../components/GroupInfo';
 import { formatLastSeen } from '../utils/timeUtils';
+import theme from '../theme';
 
 const Chat = () => {
   const { user } = useAuth();
@@ -23,9 +24,9 @@ const Chat = () => {
   const [searchMember, setSearchMember] = useState('');
   const [foundMember, setFoundMember] = useState(null);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
-  const [onlineUsers, setOnlineUsers] = useState([]);
   const [unreadCounts, setUnreadCounts] = useState({});
   const [replyTo, setReplyTo] = useState(null);
+  const [showSidebar, setShowSidebar] = useState(true);
 
   useEffect(() => {
     const newSocket = io('http://localhost:5000');
@@ -45,31 +46,24 @@ const Chat = () => {
     });
 
     newSocket.on('message_updated', (updatedMessage) => {
-  setMessages((prev) => prev.map(m =>
-    m._id === updatedMessage._id ? updatedMessage : m
-  )); 
+      setMessages((prev) => prev.map(m =>
+        m._id === updatedMessage._id ? updatedMessage : m
+      ));
+    });
 
-  newSocket.on('messages_seen_update', ({ roomId }) => {
-  if (activeRoom?._id === roomId) {
-    setMessages((prev) => prev.map(m => ({ ...m, status: 'seen' })));
-  }
-});
-});
+    newSocket.on('messages_seen_update', ({ roomId }) => {
+      setMessages((prev) => prev.map(m =>
+        m.room === roomId ? { ...m, status: 'seen' } : m
+      ));
+    });
 
-    newSocket.on('new_chat_notification', async ({ roomId }) => {
+    newSocket.on('new_chat_notification', async () => {
       fetchContacts();
       fetchGroups();
       fetchUnreadCounts();
     });
 
     newSocket.on('user_status_change', ({ userId, isOnline, lastSeen }) => {
-      setOnlineUsers((prev) => {
-        if (isOnline) {
-          return [...new Set([...prev, userId])];
-        } else {
-          return prev.filter(id => id !== userId);
-        }
-      });
       setContacts((prev) => prev.map(c => {
         if (c.otherUserId?.toString() === userId) {
           return { ...c, isOnline, lastSeen };
@@ -78,11 +72,8 @@ const Chat = () => {
       }));
     });
 
-    newSocket.on('online_users', (users) => {
-      setOnlineUsers(users);
-    });
-
     return () => newSocket.disconnect();
+  // eslint-disable-next-line
   }, [user.id]);
 
   useEffect(() => {
@@ -131,8 +122,9 @@ const Chat = () => {
     setShowGroupInfo(false);
     setShowAddMember(false);
     setFoundMember(null);
+    setReplyTo(null);
+    setShowSidebar(false);
 
-    // Mark messages as read
     try {
       await api.post(`/messages/read/${room._id}`);
       setUnreadCounts((prev) => {
@@ -146,11 +138,9 @@ const Chat = () => {
 
     if (socket) {
       socket.emit('join_room', room._id);
+      socket.emit('messages_seen', { roomId: room._id, userId: user.id });
     }
-    socket.emit('messages_seen', {
-  roomId: room._id,
-  userId: user.id
-});
+
     try {
       const res = await api.get(`/messages/${room._id}`);
       setMessages(res.data);
@@ -160,16 +150,16 @@ const Chat = () => {
   };
 
   const handleSendMessage = (content, replyToId) => {
-  if (!activeRoom || !socket) return;
-  socket.emit('send_message', {
-    roomId: activeRoom._id,
-    senderId: user.id,
-    content,
-    replyTo: replyToId || null
-  });
-  socket.emit('stop_typing', activeRoom._id);
-  setReplyTo(null);
-};
+    if (!activeRoom || !socket) return;
+    socket.emit('send_message', {
+      roomId: activeRoom._id,
+      senderId: user.id,
+      content,
+      replyTo: replyToId || null
+    });
+    socket.emit('stop_typing', activeRoom._id);
+    setReplyTo(null);
+  };
 
   const handleTyping = () => {
     if (!activeRoom || !socket) return;
@@ -250,6 +240,7 @@ const Chat = () => {
       }
       setActiveRoom(null);
       setMessages([]);
+      setShowSidebar(true);
     } catch (err) {
       alert(err.response?.data?.message || 'Could not delete');
     }
@@ -257,7 +248,9 @@ const Chat = () => {
 
   const handleMemberRemoved = (updatedRoom) => {
     setActiveRoom(updatedRoom);
-    setGroups((prev) => prev.map(g => g._id === updatedRoom._id ? updatedRoom : g));
+    setGroups((prev) => prev.map(g =>
+      g._id === updatedRoom._id ? updatedRoom : g
+    ));
   };
 
   const handleDeleteGroup = (roomId) => {
@@ -265,37 +258,76 @@ const Chat = () => {
     setActiveRoom(null);
     setMessages([]);
     setShowGroupInfo(false);
+    setShowSidebar(true);
+  };
+
+  const handleBack = () => {
+    setActiveRoom(null);
+    setShowSidebar(true);
+    if (socket && activeRoom) {
+      socket.emit('leave_room', activeRoom._id);
+    }
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      <Navbar />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar
-          contacts={contacts}
-          groups={groups}
-          activeRoom={activeRoom}
-          onRoomSelect={handleRoomSelect}
-          onNewChat={handleNewChat}
-          onCreateGroup={handleCreateGroup}
-          unreadCounts={unreadCounts}
-        />
+    <div className="flex flex-col bg-gray-50" style={{height: '100%', position: 'fixed', width: '100%', top: 0, left: 0}}>
+      <Navbar onMenuClick={() => setShowSidebar(!showSidebar)} />
 
-        <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
+
+        {/* Sidebar */}
+        <div className={`
+          ${activeRoom ? 'hidden md:flex' : 'flex'}
+          w-full md:w-72
+          flex-col
+          absolute md:relative
+          inset-0 md:inset-auto
+          z-20 md:z-auto
+          h-full bg-white
+        `}>
+          <Sidebar
+            contacts={contacts}
+            groups={groups}
+            activeRoom={activeRoom}
+            onRoomSelect={handleRoomSelect}
+            onNewChat={handleNewChat}
+            onCreateGroup={handleCreateGroup}
+            unreadCounts={unreadCounts}
+          />
+        </div>
+
+        {/* Chat area */}
+        <div className={`
+          ${activeRoom ? 'flex' : 'hidden md:flex'}
+          flex-1 flex-col overflow-hidden
+          absolute md:relative
+          inset-0 md:inset-auto
+          z-10 md:z-auto
+          bg-gray-50
+        `}>
           {activeRoom ? (
             <>
               {/* Chat header */}
-              <div className="px-6 py-3 bg-white border-b border-gray-100 flex items-center justify-between shadow-sm">
-                <div className="flex items-center gap-3">
+              <div className="px-4 py-3 bg-white border-b border-gray-100 flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-2">
+
+                  {/* Back button mobile only */}
+                  <button
+                    onClick={handleBack}
+                    className="md:hidden w-8 h-8 flex items-center justify-center text-gray-600 text-xl font-bold"
+                  >
+                    ←
+                  </button>
+
                   <div
-                    style={{background: 'linear-gradient(135deg, #4F46E5, #7C3AED)'}}
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-white font-medium text-sm"
+                    style={{background: theme.gradientTwo}}
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0"
                   >
                     {activeRoom.name?.charAt(0).toUpperCase()}
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-800">{activeRoom.name}</p>
-                    <p className="text-xs text-purple-500">
+                    <p className="text-xs" style={{color: theme.primary}}>
                       {activeRoom.isGroup
                         ? `${activeRoom.members?.length} members`
                         : activeRoom.isOnline
@@ -307,46 +339,47 @@ const Chat = () => {
                 </div>
 
                 {/* Action buttons */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   {activeRoom.isGroup && (
                     <>
                       <button
                         onClick={() => setShowAddMember(!showAddMember)}
-                        style={{background: 'linear-gradient(135deg, #4F46E5, #7C3AED)'}}
-                        className="text-white text-xs px-3 py-1.5 rounded-full"
+                        style={{background: theme.gradientTwo}}
+                        className="text-white text-xs px-2 py-1.5 rounded-full"
                       >
-                        + Add Member
+                        + Add
                       </button>
                       <button
                         onClick={() => setShowGroupInfo(!showGroupInfo)}
-                        className="text-purple-600 text-xs px-3 py-1.5 rounded-full border border-purple-200 hover:bg-purple-50 transition"
+                        className="text-xs px-2 py-1.5 rounded-full border"
+                        style={{color: theme.primary, borderColor: theme.primary}}
                       >
-                        👥 Info
+                        👥
                       </button>
                     </>
                   )}
                   <button
                     onClick={handleDeleteRoom}
-                    className="text-red-400 text-xs px-3 py-1.5 rounded-full border border-red-200 hover:bg-red-50 transition"
+                    className="text-red-400 text-xs px-2 py-1.5 rounded-full border border-red-200"
                   >
-                    🗑 Delete
+                    🗑
                   </button>
                 </div>
               </div>
 
               {/* Add member panel */}
               {activeRoom.isGroup && showAddMember && (
-                <div className="px-6 py-3 bg-purple-50 border-b border-purple-100 flex gap-2">
+                <div className="px-4 py-3 border-b flex gap-2" style={{background: theme.light}}>
                   <input
                     type="text"
                     value={searchMember}
                     onChange={(e) => setSearchMember(e.target.value)}
                     placeholder="Search by name or phone..."
-                    className="flex-1 bg-white rounded-full px-4 py-2 text-sm outline-none border border-purple-200 focus:ring-2 focus:ring-purple-300"
+                    className="flex-1 bg-white rounded-full px-4 py-2 text-sm outline-none border focus:ring-2 focus:ring-orange-300"
                   />
                   <button
                     onClick={handleSearchMember}
-                    style={{background: 'linear-gradient(135deg, #4F46E5, #7C3AED)'}}
+                    style={{background: theme.gradientTwo}}
                     className="px-4 py-2 rounded-full text-white text-sm"
                   >
                     Search
@@ -354,12 +387,12 @@ const Chat = () => {
                 </div>
               )}
 
-              {/* Found member to add */}
+              {/* Found member */}
               {activeRoom.isGroup && foundMember && (
-                <div className="px-6 py-2 bg-purple-50 border-b border-purple-100 flex items-center justify-between">
+                <div className="px-4 py-2 border-b flex items-center justify-between" style={{background: theme.light}}>
                   <div className="flex items-center gap-2">
                     <div
-                      style={{background: 'linear-gradient(135deg, #4F46E5, #7C3AED)'}}
+                      style={{background: theme.gradientTwo}}
                       className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm"
                     >
                       {foundMember.username?.charAt(0).toUpperCase()}
@@ -371,7 +404,7 @@ const Chat = () => {
                   </div>
                   <button
                     onClick={handleAddMember}
-                    style={{background: 'linear-gradient(135deg, #4F46E5, #7C3AED)'}}
+                    style={{background: theme.gradientTwo}}
                     className="text-white text-xs px-3 py-1.5 rounded-full"
                   >
                     Add
@@ -379,34 +412,34 @@ const Chat = () => {
                 </div>
               )}
 
-              {/* Messages + Group Info side by side */}
+              {/* Messages + Group Info */}
               <div className="flex flex-1 overflow-hidden">
                 <div className="flex-1 flex flex-col overflow-hidden">
-                  <div className="flex-1 overflow-y-auto px-6 py-4 bg-gray-50">
+                  <div className="flex-1 overflow-y-auto px-4 py-4 bg-gray-50">
                     {messages.length === 0 ? (
                       <div className="flex items-center justify-center h-full">
                         <div className="text-center">
                           <div
-                            style={{background: 'linear-gradient(135deg, #4F46E5, #7C3AED)'}}
+                            style={{background: theme.gradientTwo}}
                             className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3"
                           >
                             <span className="text-white text-2xl">💬</span>
                           </div>
                           <p className="text-gray-500 text-sm">No messages yet</p>
-                          <p className="text-gray-400 text-xs mt-1">Say hello!</p>
+                          <p className="text-gray-400 text-xs mt-1">Say hello! 👋</p>
                         </div>
                       </div>
                     ) : (
                       messages.map((message) => (
                         <MessageBubble
-  key={message._id}
-  message={message}
-  onDeleteMessage={handleDeleteMessage}
-  onEditMessage={handleEditMessage}
-  socket={socket}
-  activeRoomId={activeRoom._id}
-  onReply={(msg) => setReplyTo(msg)}
-/>
+                          key={message._id}
+                          message={message}
+                          onDeleteMessage={handleDeleteMessage}
+                          onEditMessage={handleEditMessage}
+                          socket={socket}
+                          activeRoomId={activeRoom._id}
+                          onReply={(msg) => setReplyTo(msg)}
+                        />
                       ))
                     )}
 
@@ -424,12 +457,12 @@ const Chat = () => {
                   </div>
 
                   <MessageInput
-  onSendMessage={handleSendMessage}
-  onTyping={handleTyping}
-  activeRoomId={activeRoom._id}
-  replyTo={replyTo}
-  onCancelReply={() => setReplyTo(null)}
-/>
+                    onSendMessage={handleSendMessage}
+                    onTyping={handleTyping}
+                    activeRoomId={activeRoom._id}
+                    replyTo={replyTo}
+                    onCancelReply={() => setReplyTo(null)}
+                  />
                 </div>
 
                 {/* Group Info Panel */}
@@ -444,16 +477,19 @@ const Chat = () => {
               </div>
             </>
           ) : (
+            /* Desktop welcome screen */
             <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
+              <div className="text-center px-4">
                 <div
-                  style={{background: 'linear-gradient(135deg, #4F46E5, #7C3AED)'}}
+                  style={{background: theme.gradientTwo}}
                   className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
                 >
-                  <span className="text-white text-3xl">💬</span>
+                  <span className="text-white text-3xl">🔥</span>
                 </div>
-                <h2 className="text-gray-700 font-medium text-lg">Welcome to ChatApp</h2>
-                <p className="text-gray-400 text-sm mt-1">Search a contact or select a chat</p>
+                <h2 className="text-gray-700 font-bold text-xl">{theme.name}</h2>
+                <p className="text-gray-400 text-sm mt-2">
+                  Select a chat to start messaging
+                </p>
               </div>
             </div>
           )}

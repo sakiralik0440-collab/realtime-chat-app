@@ -1,22 +1,42 @@
 import { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import theme from '../theme';
 
 const EMOJIS = ['❤️', '👍', '😂', '😮', '😢', '🙏'];
 
-  const MessageBubble = ({ message, onDeleteMessage, onEditMessage, onReaction, socket, activeRoomId, onReply }) => {
+const MessageBubble = ({
+  message,
+  onDeleteMessage,
+  onEditMessage,
+  onReaction,
+  socket,
+  activeRoomId,
+  onReply,
+}) => {
   const { user } = useAuth();
-  const isMyMessage = message.sender._id === user?.id;
-  const [showMenu, setShowMenu] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState(message.content);
+
+  const isMyMessage =
+    message.sender._id === user?.id;
+
+  const [showMenu, setShowMenu] =
+    useState(false);
+
+  const [isEditing, setIsEditing] =
+    useState(false);
+
+  const [editContent, setEditContent] =
+    useState(message.content);
+
   const longPressTimer = useRef(null);
-  // const [showEmojiPicker, setShowEmojiPicker] = useState(false);
- 
+
   const formatTime = (timestamp) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    return date.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   const handlePressStart = () => {
@@ -31,11 +51,18 @@ const EMOJIS = ['❤️', '👍', '😂', '😮', '😢', '🙏'];
 
   const handleDelete = async () => {
     try {
-      const res = await api.delete(`/messages/${message._id}`);
+      const res = await api.delete(
+        `/messages/${message._id}`
+      );
+
       onDeleteMessage(message._id, res.data);
+
       setShowMenu(false);
     } catch (err) {
-      alert(err.response?.data?.message || 'Could not delete message');
+      alert(
+        err.response?.data?.message ||
+          'Could not delete message'
+      );
     }
   };
 
@@ -47,11 +74,17 @@ const EMOJIS = ['❤️', '👍', '😂', '😮', '😢', '🙏'];
 
   const handleEditSubmit = async () => {
     if (!editContent.trim()) return;
+
     try {
-      const res = await api.put(`/messages/${message._id}`, {
-        content: editContent
-      });
+      const res = await api.put(
+        `/messages/${message._id}`,
+        {
+          content: editContent,
+        }
+      );
+
       onEditMessage(message._id, res.data);
+
       setIsEditing(false);
     } catch (err) {
       alert('Could not edit message');
@@ -60,48 +93,77 @@ const EMOJIS = ['❤️', '👍', '😂', '😮', '😢', '🙏'];
 
   const handleReaction = (emoji) => {
     if (!socket || !activeRoomId) return;
+
     socket.emit('message_reaction', {
       messageId: message._id,
       emoji,
       roomId: activeRoomId,
       userId: user.id,
-      username: user.username
+      username: user.username,
     });
-    setShowEmojiPicker(false);
+
     setShowMenu(false);
   };
 
-  // Group reactions by emoji
-  const groupedReactions = message.reactions?.reduce((acc, r) => {
-    if (!acc[r.emoji]) acc[r.emoji] = [];
-    acc[r.emoji].push(r.username);
-    return acc;
-  }, {});
+  // Group reactions
+  const groupedReactions =
+    message.reactions?.reduce((acc, r) => {
+      if (!acc[r.emoji]) {
+        acc[r.emoji] = [];
+      }
+
+      acc[r.emoji].push(r.username);
+
+      return acc;
+    }, {});
 
   const renderContent = () => {
+    // Deleted message
     if (message.isDeleted) {
       return (
-        <p className={`text-sm italic ${isMyMessage ? 'text-white opacity-70' : 'text-gray-400'}`}>
+        <p
+          className={`text-sm italic ${
+            isMyMessage
+              ? 'text-white opacity-70'
+              : 'text-gray-400'
+          }`}
+        >
           🚫 This message was deleted
         </p>
       );
     }
 
+    // Editing mode
     if (isEditing) {
       return (
         <div className="flex flex-col gap-2">
           <input
             value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleEditSubmit()}
+            onChange={(e) =>
+              setEditContent(e.target.value)
+            }
+            onKeyDown={(e) =>
+              e.key === 'Enter' &&
+              handleEditSubmit()
+            }
             className="text-sm text-gray-800 bg-white rounded-lg px-2 py-1 outline-none w-full"
             autoFocus
           />
+
           <div className="flex gap-2">
-            <button onClick={handleEditSubmit} className="text-xs bg-white text-purple-600 px-2 py-1 rounded-full font-medium">
+            <button
+              onClick={handleEditSubmit}
+              className="text-xs bg-white text-purple-600 px-2 py-1 rounded-full font-medium"
+            >
               Save
             </button>
-            <button onClick={() => setIsEditing(false)} className="text-xs text-white opacity-70 px-2 py-1">
+
+            <button
+              onClick={() =>
+                setIsEditing(false)
+              }
+              className="text-xs text-white opacity-70 px-2 py-1"
+            >
               Cancel
             </button>
           </div>
@@ -109,62 +171,101 @@ const EMOJIS = ['❤️', '👍', '😂', '😮', '😢', '🙏'];
       );
     }
 
+    // Image message
     if (message.messageType === 'image') {
       return (
         <img
           src={message.fileUrl}
           alt="shared"
           className="max-w-xs rounded-xl cursor-pointer"
-          onClick={() => window.open(message.fileUrl, '_blank')}
+          onClick={() =>
+            window.open(
+              message.fileUrl,
+              '_blank'
+            )
+          }
         />
       );
     }
 
+    // File message
     if (message.messageType === 'file') {
       return (
-          <a
+        <a
           href={message.fileUrl}
           target="_blank"
           rel="noreferrer"
-          className={`flex items-center gap-2 text-sm underline ${isMyMessage ? 'text-white' : 'text-purple-600'}`}
+          className={`flex items-center gap-2 text-sm underline ${
+            isMyMessage
+              ? 'text-white'
+              : 'text-purple-600'
+          }`}
         >
           <span>📎</span>
-          <span>{message.fileName || 'Download file'}</span>
+
+          <span>
+            {message.fileName ||
+              'Download file'}
+          </span>
         </a>
       );
     }
 
+    // Normal text
     return (
       <p className="text-sm leading-relaxed">
         {message.content}
-        {message.isEdited && !message.isDeleted && (
-          <span className={`text-xs ml-1 ${isMyMessage ? 'text-white opacity-60' : 'text-gray-400'}`}>
-            (edited)
-          </span>
-        )}
+
+        {message.isEdited &&
+          !message.isDeleted && (
+            <span
+              className={`text-xs ml-1 ${
+                isMyMessage
+                  ? 'text-white opacity-60'
+                  : 'text-gray-400'
+              }`}
+            >
+              (edited)
+            </span>
+          )}
       </p>
     );
   };
 
   return (
-    <div className={`flex mb-3 ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
-      <div className={`max-w-xs lg:max-w-md flex flex-col ${isMyMessage ? 'items-end' : 'items-start'}`}>
-
+    <div
+      className={`flex mb-3 ${
+        isMyMessage
+          ? 'justify-end'
+          : 'justify-start'
+      }`}
+    >
+      <div
+        className={`max-w-xs lg:max-w-md flex flex-col ${
+          isMyMessage
+            ? 'items-end'
+            : 'items-start'
+        }`}
+      >
+        {/* Sender Name */}
         {!isMyMessage && (
           <span className="text-xs text-gray-400 mb-1 ml-2">
             {message.sender.username}
           </span>
         )}
 
-        {/* Long press menu */}
+        {/* Menu */}
         {showMenu && (
           <div className="mb-1 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden z-10">
-            {/* Emoji reaction row */}
+            
+            {/* Emoji Row */}
             <div className="flex gap-1 px-3 py-2 border-b border-gray-100">
-              {EMOJIS.map(emoji => (
+              {EMOJIS.map((emoji) => (
                 <button
                   key={emoji}
-                  onClick={() => handleReaction(emoji)}
+                  onClick={() =>
+                    handleReaction(emoji)
+                  }
                   className="text-xl hover:scale-125 transition-transform"
                 >
                   {emoji}
@@ -172,56 +273,78 @@ const EMOJIS = ['❤️', '👍', '😂', '😮', '😢', '🙏'];
               ))}
             </div>
 
-            {isMyMessage && !message.isDeleted && (
-              <button
-                onClick={handleEdit}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full text-left"
-              >
-                ✏️ Edit
-              </button>
-            )}
-            {isMyMessage && !message.isDeleted && (
-              <button
-                onClick={handleDelete}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-red-50 w-full text-left"
-              >
-                🗑️ Delete
-              </button>
-            )}
+            {/* Reply */}
             <button
-              onClick={() => setShowMenu(false)}
+              onClick={() => {
+                if (onReply) {
+                  onReply(message);
+                }
+
+                setShowMenu(false);
+              }}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full text-left"
+            >
+              ↩️ Reply
+            </button>
+
+            {/* Edit */}
+            {isMyMessage &&
+              !message.isDeleted && (
+                <button
+                  onClick={handleEdit}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full text-left"
+                >
+                  ✏️ Edit
+                </button>
+              )}
+
+            {/* Delete */}
+            {isMyMessage &&
+              !message.isDeleted && (
+                <button
+                  onClick={handleDelete}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-red-50 w-full text-left"
+                >
+                  🗑️ Delete
+                </button>
+              )}
+
+            {/* Cancel */}
+            <button
+              onClick={() =>
+                setShowMenu(false)
+              }
               className="flex items-center gap-2 px-4 py-2 text-sm text-gray-400 hover:bg-gray-50 w-full text-left"
             >
               ✕ Cancel
             </button>
-            <button
-             onClick={() => {
-              if (onReply) onReply(message);
-               setShowMenu(false);
-               }}
-              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full text-left"
->
-              ↩️ Reply
-            </button>
           </div>
         )}
 
-        {/* Message bubble */}
+        {/* Bubble */}
         <div
-          style={isMyMessage && message.messageType !== 'image' && !message.isDeleted
-            ? {background: 'linear-gradient(135deg, #4F46E5, #7C3AED)'}
-            : {}
+          style={
+            isMyMessage &&
+            message.messageType !==
+              'image' &&
+            !message.isDeleted
+              ? {
+                  background:
+                    theme.gradientTwo,
+                }
+              : {}
           }
           className={`px-4 py-2 rounded-2xl select-none cursor-pointer ${
             isMyMessage
-              ? message.messageType === 'image'
+              ? message.messageType ===
+                'image'
                 ? ''
                 : message.isDeleted
-                  ? 'bg-gray-200 text-gray-500 rounded-br-sm'
-                  : 'text-white rounded-br-sm shadow-md'
+                ? 'bg-gray-200 text-gray-500 rounded-br-sm'
+                : 'text-white rounded-br-sm shadow-md'
               : message.isDeleted
-                ? 'bg-gray-100 text-gray-400 rounded-bl-sm'
-                : 'bg-white text-gray-800 rounded-bl-sm shadow-sm border border-gray-100'
+              ? 'bg-gray-100 text-gray-400 rounded-bl-sm'
+              : 'bg-white text-gray-800 rounded-bl-sm shadow-sm border border-gray-100'
           }`}
           onMouseDown={handlePressStart}
           onMouseUp={handlePressEnd}
@@ -229,41 +352,69 @@ const EMOJIS = ['❤️', '👍', '😂', '😮', '😢', '🙏'];
           onTouchStart={handlePressStart}
           onTouchEnd={handlePressEnd}
         >
-          {/* Reply preview inside bubble */}
-{message.replyTo && (
-  <div className={`mb-2 px-3 py-1.5 rounded-xl border-l-4 ${
-    isMyMessage
-      ? 'bg-white bg-opacity-20 border-white'
-      : 'bg-gray-50 border-purple-400'
-  }`}>
-    <p className={`text-xs font-medium ${isMyMessage ? 'text-white' : 'text-purple-600'}`}>
-      {message.replyTo.sender?.username || 'Unknown'}
-    </p>
-    <p className={`text-xs truncate ${isMyMessage ? 'text-white opacity-80' : 'text-gray-500'}`}>
-      {message.replyTo.content || '📎 Attachment'}
-    </p>
-  </div>
-)}
+          {/* Reply Preview */}
+          {message.replyTo && (
+            <div
+              className={`mb-2 px-3 py-1.5 rounded-xl border-l-4 ${
+                isMyMessage
+                  ? 'bg-white bg-opacity-20 border-white'
+                  : 'bg-gray-50 border-purple-400'
+              }`}
+            >
+              <p
+                className={`text-xs font-medium ${
+                  isMyMessage
+                    ? 'text-white'
+                    : 'text-purple-600'
+                }`}
+              >
+                {message.replyTo.sender
+                  ?.username || 'Unknown'}
+              </p>
+
+              <p
+                className={`text-xs truncate ${
+                  isMyMessage
+                    ? 'text-white opacity-80'
+                    : 'text-gray-500'
+                }`}
+              >
+                {message.replyTo.content ||
+                  '📎 Attachment'}
+              </p>
+            </div>
+          )}
+
           {renderContent()}
         </div>
 
-        {/* Reactions display */}
-        {groupedReactions && Object.keys(groupedReactions).length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1 mx-1">
-            {Object.entries(groupedReactions).map(([emoji, users]) => (
-              <button
-                key={emoji}
-                onClick={() => handleReaction(emoji)}
-                title={users.join(', ')}
-                className="bg-white border border-gray-200 rounded-full px-2 py-0.5 text-xs flex items-center gap-1 hover:bg-gray-50 shadow-sm"
-              >
-                <span>{emoji}</span>
-                <span className="text-gray-500">{users.length}</span>
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Reactions */}
+        {groupedReactions &&
+          Object.keys(groupedReactions)
+            .length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1 mx-1">
+              {Object.entries(
+                groupedReactions
+              ).map(([emoji, users]) => (
+                <button
+                  key={emoji}
+                  onClick={() =>
+                    handleReaction(emoji)
+                  }
+                  title={users.join(', ')}
+                  className="bg-white border border-gray-200 rounded-full px-2 py-0.5 text-xs flex items-center gap-1 hover:bg-gray-50 shadow-sm"
+                >
+                  <span>{emoji}</span>
 
+                  <span className="text-gray-500">
+                    {users.length}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+        {/* Time */}
         <span className="text-xs text-gray-400 mt-1 mx-2">
           {formatTime(message.createdAt)}
         </span>

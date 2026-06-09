@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import api from '../utils/api';
+import theme from '../theme';
 
 const SearchUser = ({ onStartChat }) => {
   const [phone, setPhone] = useState('');
@@ -78,7 +79,7 @@ const SearchUser = ({ onStartChat }) => {
         <div className="mt-3 bg-purple-50 rounded-xl p-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div
-              style={{background: 'linear-gradient(135deg, #4F46E5, #7C3AED)'}}
+              style={{background:  theme.gradientTwo}}
               className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-medium"
             >
               {foundUser.username?.charAt(0).toUpperCase()}
@@ -91,7 +92,7 @@ const SearchUser = ({ onStartChat }) => {
           <button
             onClick={handleStartChat}
             disabled={starting}
-            style={{background: 'linear-gradient(135deg, #4F46E5, #7C3AED)'}}
+            style={{background: 'theme.gradientTwo'}}
             className="text-white text-xs px-3 py-1.5 rounded-full disabled:opacity-50"
           >
             {starting ? '...' : 'Chat'}
