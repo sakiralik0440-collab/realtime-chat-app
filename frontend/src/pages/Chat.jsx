@@ -29,7 +29,7 @@ const Chat = () => {
   const [showSidebar, setShowSidebar] = useState(true);
 
   useEffect(() => {
-    const newSocket = io('http://localhost:5000');
+    const newSocket = io('https://realtime-chat-app-nfhn.onrender.com');
     setSocket(newSocket);
     newSocket.emit('user_online', user.id);
 
